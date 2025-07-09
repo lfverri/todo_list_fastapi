@@ -7,5 +7,7 @@ class Settings(BaseSettings):
         env_file_encoding='utf-8',
         case_sensitive=True,
     )
-
     DATABASE_URL: str
+
+
+settings = Settings()
