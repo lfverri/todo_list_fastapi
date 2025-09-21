@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -7,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 from app.app import app
 from src.app.database import get_session
 from src.app.models import User, table_registry
+from src.app.security import get_password_hash
 
 
 @pytest.fixture
@@ -38,10 +40,29 @@ def session():
 
 @pytest.fixture
 def user(session):
+    pwd = 'testpassword'
     user = User(
-        username='testuser', email='teste@email.com', password='testpassword'
+        username='testuser',
+        email='teste@email.com',
+        password=get_password_hash(pwd),
     )
     session.add(user)
     session.commit()
     session.refresh(user)
+
+    user.clean_password = pwd
+
     return user
+
+
+@pytest.fixture
+def auth_headers(token: str):
+    return {'Authorization': f'Bearer {token}'}
+
+
+@pytest.fixture
+async def token(client: AsyncClient):
+    login_data = {'username': 'testuser', 'password': 'testpassword'}
+    response = await client.post('/token', data=login_data)
+    assert 'access_token' in response.json()
+    return response.json()['access_token']
